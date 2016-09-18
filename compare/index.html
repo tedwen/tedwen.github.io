@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Compare Code in Various Languages</title>
+    <meta charset="utf-8">
+    <link href="flextabs.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+    <nav>
+    </nav>
+    
+    <table id="main-table">
+        <thead>
+            <th class="rust">Rust</th>
+            <th class="go">Go</th>
+            <th class="scala">Scala</th>
+            <th class="nim">Nim</th>
+            <th class="python">Python 2.7</th>
+            <th class="javascript">Javascript</th>
+            <th class="julia">Julia</th>
+        </thead>
+        <tbody>
+        <tr>
+            <td class="rust">
+<pre>
+use std::env;
+use std::io::prelude::*;
+use std::fs::File;
+use std::io::BufReader;
+use std::collections::HashMap;
+
+fn main() {
+    let args: Vec<_> = env::args().collect();
+    let filename = if args.len() > 1 { args[1].as_str() } else { "page1.txt" };
+    
+    let mut cf = HashMap::new();
+    
+    if let Ok(f) = File::open(filename) {
+        for line in BufReader::new(f).lines() {
+            for c in line.unwrap().chars() {
+                *cf.entry(c).or_insert(0) += 1;
+            }
+        }
+        
+        let mut cfv: Vec<(&char, &u32)> = cf.iter().collect();
+        cfv.sort_by(|a,b| b.1.cmp(a.1));
+
+        for v in cfv.iter() {
+            println!("{}: {}", v.0, v.1);
+        }
+    } else {
+        println!("Cannot open file");
+    }
+}
+</pre>
+            </td>
+            <td class="go">
+<pre>
+package main
+
+import (
+    "fmt"
+    "os"
+    "bufio"
+    "sort"
+)
+
+func main() {
+    filename := "page1.txt"
+    if len(os.Args) > 1 {
+        filename = os.Args[1]
+    }
+    
+    f, err := os.Open(filename)
+    if err != nil {
+        fmt.Println("Cannot open file")
+        return
+    }
+    defer f.Close()
+    
+    cf := map[rune]int{}
+    
+    reader := bufio.NewReader(f)
+    for {
+        if line, err := reader.ReadString('\n'); err != nil {
+            break
+        } else {
+            for _, c := range []rune(line) {
+                if n, ok := cf[c]; ok {
+                    cf[c] = n + 1
+                } else {
+                    cf[c] = 1
+                }
+            }
+        }
+    }
+    
+    // sort map in python: sorted(m, key=lambda k:m[k])
+    cfv := sortMapByVal(cf)
+    for _, v := range cfv {
+        fmt.Printf("%c: %d\n", v.Key, v.Value)
+    }
+}
+
+// Borrow from Andrew Gerrand's solution
+type Pair struct {
+    Key rune
+    Value int
+}
+
+type PairList []Pair
+
+func (p PairList) Swap(i, j int) {
+    p[i], p[j] = p[j], p[i]
+}
+func (p PairList) Len() int {
+    return len(p)
+}
+func (p PairList) Less(i, j int) bool {
+    return p[j].Value < p[i].Value
+}
+func sortMapByVal(cm map[rune]int) PairList {
+    p := make(PairList, len(cm))
+    i := 0
+    for k, v := range cm {
+        p[i] = Pair{k, v}
+        i += 1
+    }
+    sort.Sort(p)
+    return p
+}
+</pre>
+            </td>
+            <td class="scala">
+<pre>
+import scala.io.Source
+import scala.collection.mutable.Map
+
+object CharFreq extends App {
+    val filename = if (args.length > 0) args(0) else "page1.txt";
+    
+    val cf = Map[Char,Int]()
+    
+    try {
+        for (line <- Source.fromFile(filename).getLines()) {
+            line.toList foreach { (x) => cf += x -> (cf.getOrElse(x, 0) + 1) }
+        }
+        
+        val cfv = cf.toSeq.sortBy(-_._2)
+        
+        cfv foreach { (cp) => println(s"${cp._1}: ${cp._2}") }
+    } catch {
+        case ex: Exception => println("Cannot open file")
+    }
+}
+</pre>
+            </td>
+            <td class="nim">
+<pre>
+import os, tables, unicode
+
+let filename = if paramCount() > 0: paramStr(1) else: "page1.txt"
+
+var cf = initCountTable[string]()
+
+try:
+  for line in lines filename:
+    for c in runes(line):
+      cf.inc(c.toUTF8())
+except IOError:
+  echo "IOError:" & getCurrentExceptionMsg()
+  
+cf.sort()
+
+for k, v in cf.pairs():
+  echo $k,": ",$v
+</pre>
+            </td>
+            <td class="python">
+<pre>
+import os
+
+def main(filename, encoding = 'utf-8'):
+    if not os.path.exists(filename):
+        print 'Cannot open file'
+        return
+        
+    cf = {}
+    
+    with open(filename) as fp:
+        for line in fp:
+            for c in line.decode(encoding):
+                cf[c] = cf.get(c, 0) + 1
+    
+    cfv = sorted([(k,v) for k,v in cf.items()], key=lambda x:x[1], reverse=True)
+    
+    for c, v in cfv:
+        print '%s: %d' % (c, v)
+
+if __name__ == '__main__':
+    import sys
+    filename = sys.argv[1] if len(sys.argv) > 1 else 'page1.txt'
+    main(filename)
+</pre>
+            </td>
+            <td class="javascript">
+<pre>// Node v5.0+
+const fs = require('fs'),
+      readline = require('readline');
+
+const main = (filename, done) => {
+    var cf = {};
+    
+    readline.createInterface({
+        input: fs.createReadStream(filename),
+        terminal: false
+    }).on('line', (line)=>{
+        for (var i in line) {
+            var c = line[i];
+            cf[c] = (cf[c] || 0) + 1;
+        }
+    }).on('close', ()=>{
+        var cfv = [];
+        for (var k in cf) {
+            cfv.push([k, cf[k]]);
+        }
+        cfv.sort((a,b)=>{
+            return b[1] - a[1];
+        });
+        done(cfv);
+    });
+}
+
+main(process.argv[2] || 'page1.txt', (sorted)=>{
+    for(var i in sorted) {
+        console.log(sorted[i][0]+': '+sorted[i][1]);
+    }
+    process.exit(0);
+});
+</pre>
+            </td>
+            <td class="julia">
+<pre>
+filename = length(ARGS) > 0 ? ARGS[1] : "page1.txt"
+
+cf = Dict()
+
+f = open(filename)
+for line in eachline(f)
+    for c in line
+        cf[c] = get(cf, c, 0) + 1
+    end
+end
+close(f)
+
+cf = sort(collect(cf), by=x->x[2], rev=true)
+
+for (k, v) in cf
+    println("$k: $v")
+end
+</pre>
+            </td>
+        </tr>
+        <tr>
+            <td class="rust">
+<pre>
+time target/release/charfreq large.txt
+
+real	0m0.035s
+user	0m0.018s
+sys	0m0.011s
+</pre>
+            </td>
+            <td class="go">
+<pre>
+time charfreq large.txt
+
+real	0m0.055s
+user	0m0.031s
+sys	0m0.016s
+</pre>
+            </td>
+            <td class="scala">
+<pre>
+time java -cp .:scala-libary.jar CharFreq
+
+real	0m0.381s
+user	0m0.401s
+sys	0m0.039s
+
+time scala CharFreq
+
+real	0m0.440s
+user	0m0.433s
+sys	0m0.039s
+</pre>
+            </td>
+            <td class="nim">
+<pre>
+time ./charfreq large.txt
+
+real	0m0.384s
+user	0m0.352s
+sys	0m0.023s
+
+(nim c -d:release charfreq.nim)
+</pre>
+            </td>
+            <td class="python">
+<pre>
+time python py_charfreq.py
+
+real	0m1.178s
+user	0m1.140s
+sys	0m0.032s
+</pre>
+            </td>
+            <td class="javascript">
+<pre>
+time node charfreq.js
+
+real	0m2.088s
+user	0m2.064s
+sys	0m0.024s
+</pre>
+            </td>
+            <td class="julia">
+<pre>
+time julia charfreq.jl
+
+real	0m3.193s
+user	0m3.173s
+sys	0m0.659s
+</pre>
+            </td>
+        </tr>
+        <tbody>
+    </table>
+</body>
+</html>
+
